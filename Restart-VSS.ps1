@@ -4,9 +4,9 @@
 asnp "VeeamPSSnapIn" -ErrorAction SilentlyContinue
 Import-Module VMware.PowerCLI
 
-$vcenter = "hqvcsa1.wvhdf.com"
+$vcenter = "vcenter.domain.com"
 $services = @("SQLWriter","VSS")
-$tag = "HQ32Day"
+$tag = "myAwesomeTag"
 Connect-VIServer $vcenter
 $vms = Get-VM |where {$_.Tag -ne $tag}
 
