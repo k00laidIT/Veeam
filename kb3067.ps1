@@ -43,7 +43,7 @@ $proxyNum = Read-Host  "Enter proxy number"
 $vboProxyTarget = Get-VBOProxy -Id $fromRepo.ProxyID
 
 #Target Repository selection
-$targetrepo=Get-VBORepository -Proxy $vbProxyTarget | Sort-Object Name
+$targetrepo=Get-VBORepository -Proxy $vboProxyTarget | Sort-Object Name
 for($i=0; $i -lt $targetrepo.count; $i++){write-host $i.  $targetrepo[$i].name}
 $targetrepoNum = Read-Host  "Enter Target repository number"
 $destinationRepo = $targetrepo[$targetrepoNum]
