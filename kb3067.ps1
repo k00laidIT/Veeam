@@ -8,7 +8,7 @@ Author: Jim Jones, @k00laidIT
 Modified Date: 5/23/2022
 
 .EXAMPLE
-.\iland-kb3067.ps1
+.\kb3067.ps1
 #>
 
 Import-Module Veeam.Archiver.PowerShell
