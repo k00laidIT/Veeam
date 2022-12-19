@@ -40,13 +40,12 @@ function New-cVBRSOBR {
   
       [Parameter(Mandatory = $true)]
       [int] $IMMDays
-  
     )
   
     begin {    
       Connect-VBRServer -Server $VBRSrv
-      $awscred = Get-VBOAmazonS3Account | Where-Object { $_.Description -eq $awsprofile }
-      $connect = Connect-VBRAmazonS3CompatibleService -Account $objkey -CustomRegionId $RegionId -ServicePoint $SvcPoint -Force
+      $awscred = Get-VBRAmazonAccount | Where-Object { $_.Description -eq $awsprofile }
+      $connect = Connect-VBRAmazonS3CompatibleService -Account $awscred -CustomRegionId $RegionId -ServicePoint $SvcPoint -Force
     } #end begin block
   
     process {
@@ -55,12 +54,13 @@ function New-cVBRSOBR {
         #Create bucket via aws cli
         $bucketname = $nameprefix + '-' + $i
         if ($IMM) {
-          Invoke-Command -ScriptBlock { aws --endpoint $svcpoint --profile $awsprofile --no-verify-ssl s3api create-bucket --object-lock-enabled-for-bucket --bucket $bucketname }
+          Invoke-Command -ScriptBlock { aws --endpoint $svcpoint --profile $awsprofile s3api create-bucket --object-lock-enabled-for-bucket --bucket $bucketname }
         } else {
-          Invoke-Command -ScriptBlock { aws --endpoint $svcpoint --profile $awsprofile --no-verify-ssl s3api create-bucket --bucket $bucketname }
+          Invoke-Command -ScriptBlock { aws --endpoint $svcpoint --profile $awsprofile s3api create-bucket --bucket $bucketname }
         }
   
-        #Create object storage repository in VBR v12  
+        #Create object storage repository in VBR v12
+  
         $bucket = Get-VBRAmazonS3Bucket -Connection $connect -Name $bucketname
         $folder = New-VBRAmazonS3Folder -Bucket $bucket -Connection $connect -Name 'Veeam'
         if ($IMM) {
