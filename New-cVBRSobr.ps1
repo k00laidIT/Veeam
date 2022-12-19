@@ -52,7 +52,7 @@ function New-cVBRSOBR {
       $i = 1
       do {
         #Create bucket via aws cli
-        $bucketname = $nameprefix + '-' + $i
+        $bucketname = $nameprefix.ToLower() + '-' + $i
         if ($IMM) {
           Invoke-Command -ScriptBlock { aws --endpoint $svcpoint --profile $awsprofile s3api create-bucket --object-lock-enabled-for-bucket --bucket $bucketname }
         } else {
