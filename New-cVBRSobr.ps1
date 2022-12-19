@@ -9,9 +9,8 @@ Author: Jim Jones, @k00laidIT
 Modified Date: 12/16/2022
 
 .EXAMPLE
-.\New-VbrSobr.ps1
+.\New-cVbrSobr.ps1
 #>
-#import-module AWS.Tools.Common, AWS.Tools.S3
 
 $nameprefix = "123-test1"
 $vbrsrv = "localhost"
@@ -33,8 +32,6 @@ do {
     else {
         Invoke-Command -ScriptBlock {aws --endpoint $svcpoint --profile $awsprofile --no-verify-ssl s3api create-bucket --bucket $bucketname}
     }
-    
-    #New-S3Bucket -EndpointUrl $svcpoint -ProfileName $awsprofile $bucketname $bucketname -ObjectLockEnabledForBucket $true
 
     #Create object storage repository in VBR v12
     $objkey = Get-VBRAmazonAccount -Id 02be1fe1-de9e-4bbf-a76b-2ab90d88fe1e
@@ -46,8 +43,7 @@ do {
     }
     else {
         Add-VBRAmazonS3CompatibleRepository -Connection $connect -AmazonS3Folder $folder -Name $bucketname
-    }
-    
+    }    
 
     $i++
 } while ($i -le $numrepos)
