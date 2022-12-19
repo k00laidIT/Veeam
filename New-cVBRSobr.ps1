@@ -44,8 +44,8 @@ function New-cVBRSOBR {
   
     begin {    
       Connect-VBRServer -Server $VBRSrv
-      $awscred = Get-VBRAmazonAccount | Where-Object { $_.Description -eq $awsprofile }
-      $connect = Connect-VBRAmazonS3CompatibleService -Account $awscred -CustomRegionId $RegionId -ServicePoint $SvcPoint -Force
+      $s3cred = Get-VBRAmazonAccount | Where-Object { $_.Description -eq $awsprofile }
+      $connect = Connect-VBRAmazonS3CompatibleService -Account $s3cred -CustomRegionId $RegionId -ServicePoint $SvcPoint -Force
     } #end begin block
   
     process {
