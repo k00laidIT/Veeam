@@ -1,61 +1,96 @@
 <#
 .Synopsis
-For Veeam Backup for Microsoft 365 Version 7 (Beta) this is will create the desired number of buckets and if desired a second set of buckets for immutable backup copy use. 
-Requires aws cli to be installed and configured with a profile via "aws configure --profile profilename" to create buckets
+For Veeam Backup & Replication v12 this script will create the desired number of buckets with a given prefix and then add them into a SOBR
 
 .Notes
 Version: 1.0
-Author: Jim Jones, @k00laidIT
-Modified Date: 12/16/2022
+Author: Jim Jones, @k00laidIT; Joe Houghes @jhoughes
+Modified Date: 12/19/2022
 
 .EXAMPLE
-.\New-VboAwsObjRepos.ps1
+./New-cVBOAWSObjRepos.ps1  #to local function into memory
+New-cVBOAWSObjRepos -NamePrefix 'jjaws-ilandproduct' -VBOSrv 'localhost' -AWSProfile 'PITaws'  -ObjCache 'O:\objCache\' -NumRepos '3' -IMM $true -IMMDays '30'
 #>
 
-$nameprefix = "bucketprefix"
-$vbosrv = "localhost"
-$awsprofile = "aws cli profile name"
-$objCache = "C:\objCache\"
-$numrepos = "3"
-$imm = $true
-$immdays = "14"
 
-Connect-VBOServer -Server $vbosrv
-$awscred = Get-VBOAmazonS3Account | where {$_.Description -eq $awsprofile}    
-$connect = New-VBOAmazonS3ConnectionSettings -Account $awscred -RegionType Global
-$enckey = Get-VBOEncryptionKey | where {$_.Description -eq $nameprefix}
+function New-cVBOAWSObjRepos {
 
-$i = 1
-do {
-    #Create bucket via aws cli    
-    $bucketname = $nameprefix+"-"+$i
-    Invoke-Command -ScriptBlock {aws --profile $awsprofile s3api create-bucket --bucket $bucketname --create-bucket-configuration "LocationConstraint=us-east-2"}    
-    
-    #Create object storage repository in VB365
-   
-    $bucket = Get-VBOAmazonS3Bucket -AmazonS3ConnectionSettings $connect -Name $bucketname
-    $folder = Add-VBOAmazonS3Folder -Bucket $bucket -Name "Veeam"
-    $objrepo = Add-VBOAmazonS3ObjectStorageRepository -Folder $folder -Name $bucketname
+  [CmdletBinding()]
+  param (
+    [Parameter(Mandatory = $true)]
+    [string] $NamePrefix,
 
-    #Create Repository in VB365
-    $path = $objCache+$bucketname
-    $proxy = Get-VBOProxy 
-    Add-VBORepository -Proxy $proxy -Name $bucketname -Path $path -RetentionPeriod Years3 -RetentionFrequencyType Daily -DailyTime 00:00:00 -DailyType Everyday -RetentionType ItemLevel -ObjectStorageRepository $objrepo -ObjectStorageEncryptionKey $enckey
+    [Parameter(Mandatory = $true)]
+    [string] $VBOSrv,
 
-    if ($imm -eq $true) {
+    [Parameter(Mandatory = $true)]
+    [string] $AWSProfile,
+
+    [Parameter(Mandatory = $true)]
+    [string] $ObjCache,
+
+    [Parameter(Mandatory = $true)]
+    [int] $NumRepos,
+
+    [Parameter(Mandatory = $true)]
+    [boolean] $IMM,
+
+    [Parameter(Mandatory = $true)]
+    [int] $IMMDays
+  )
+
+
+  begin {
+
+    Connect-VBOServer -Server $vbosrv
+    $awscred = Get-VBOAmazonS3Account | Where-Object { $_.Description -eq $awsprofile }
+    $connect = New-VBOAmazonS3ConnectionSettings -Account $awscred -RegionType Global
+    $enckey = Get-VBOEncryptionKey | Where-Object { $_.Description -eq $nameprefix }
+
+  } #end begin block
+
+  process {
+    $i = 1
+    do {
+      #Create bucket via aws cli
+      $bucketname = $nameprefix + '-' + $i
+      Invoke-Command -ScriptBlock { aws --profile $awsprofile s3api create-bucket --bucket $bucketname --create-bucket-configuration 'LocationConstraint=us-east-2' }
+
+      #Create object storage repository in VB365
+
+      $bucket = Get-VBOAmazonS3Bucket -AmazonS3ConnectionSettings $connect -Name $bucketname
+      $folder = Add-VBOAmazonS3Folder -Bucket $bucket -Name 'Veeam'
+      $objrepo = Add-VBOAmazonS3ObjectStorageRepository -Folder $folder -Name $bucketname
+
+      #Create Repository in VB365
+      $path = $objCache + $bucketname
+      $proxy = Get-VBOProxy
+      Add-VBORepository -Proxy $proxy -Name $bucketname -Path $path -RetentionPeriod Years3 -RetentionFrequencyType Daily -DailyTime 00:00:00 -DailyType Everyday -RetentionType ItemLevel -ObjectStorageRepository $objrepo -ObjectStorageEncryptionKey $enckey
+
+      if ($IMM) {
         $immbucketname = "$bucketname-imm"
-        Invoke-Command -ScriptBlock {aws --profile $awsprofile s3api create-bucket --bucket $immbucketname --create-bucket-configuration "LocationConstraint=us-east-2" --object-lock-enabled-for-bucket}
+        Invoke-Command -ScriptBlock { aws --profile $awsprofile s3api create-bucket --bucket $immbucketname --create-bucket-configuration 'LocationConstraint=us-east-2' --object-lock-enabled-for-bucket }
 
         $immbucket = Get-VBOAmazonS3Bucket -AmazonS3ConnectionSettings $connect -Name $immbucketname
-        $immfolder = Add-VBOAmazonS3Folder -Bucket $immbucket -Name "Veeam"
+        $immfolder = Add-VBOAmazonS3Folder -Bucket $immbucket -Name 'Veeam'
         $immobjrepo = Add-VBOAmazonS3ObjectStorageRepository -Folder $immfolder -Name $immbucketname -EnableImmutability
 
-        $immpath = $objCache+$immbucketname        
+        $immpath = $objCache + $immbucketname
         Add-VBORepository -Proxy $proxy -Name $immbucketname -Path $immpath -CustomRetentionPeriodType Days -CustomRetentionPeriod $immdays -RetentionFrequencyType Daily -DailyTime 00:00:00 -DailyType Everyday -RetentionType ItemLevel -ObjectStorageRepository $immobjrepo -ObjectStorageEncryptionKey $enckey
-    }
-    $i++
-} while ($i -le $numrepos)
+      }
+      $i++
 
-if ($imm -eq $true) {
-    WriteHost "Immutability has been enabled. Please setup backup jobs to standard repos and backup copies to the '-imm' repos."
-}
+    } while ($i -le $numrepos)
+
+  } #end process block
+
+  end {
+    if ($IMM) {
+      Write-Host "Immutability has been enabled. Please setup backup jobs to standard repos and backup copies to the '-imm' repos."
+    }
+  } #end end block
+
+} #end function
+
+
+
