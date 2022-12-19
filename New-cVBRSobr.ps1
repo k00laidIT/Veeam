@@ -1,6 +1,7 @@
 <#
 .Synopsis
 For Veeam Backup & Replication v12 this script will create the desired number of buckets with a given prefix and then add them into a SOBR
+Requires aws cli to be installed and configured with a profile via "aws configure --profile profilename" to create buckets
 
 .Notes
 Version: 1.0
@@ -17,6 +18,8 @@ $vbrsrv = "localhost"
 $svcpoint = "https://us-central-1a.object.ilandcloud.com" 
 $awsprofile = "ilanduscentral"
 $numrepos = "5"
+$imm = $true
+$immdays = "30"
 
 Connect-VBRServer -Server $vbrsrv
 
@@ -24,7 +27,13 @@ $i = 1
 do {
     #Create bucket via aws cli    
     $bucketname = $nameprefix+"-"+$i
-    Invoke-Command -ScriptBlock {aws --endpoint $svcpoint --profile $awsprofile --no-verify-ssl s3api create-bucket --object-lock-enabled-for-bucket --bucket $bucketname}
+    if ($imm -eq $true) {
+        Invoke-Command -ScriptBlock {aws --endpoint $svcpoint --profile $awsprofile --no-verify-ssl s3api create-bucket --object-lock-enabled-for-bucket --bucket $bucketname}
+    }
+    else {
+        Invoke-Command -ScriptBlock {aws --endpoint $svcpoint --profile $awsprofile --no-verify-ssl s3api create-bucket --bucket $bucketname}
+    }
+    
     #New-S3Bucket -EndpointUrl $svcpoint -ProfileName $awsprofile $bucketname $bucketname -ObjectLockEnabledForBucket $true
 
     #Create object storage repository in VBR v12
@@ -32,7 +41,13 @@ do {
     $connect = Connect-VBRAmazonS3CompatibleService -Account $objkey -CustomRegionId "us-east-1" -ServicePoint $svcpoint -Force
     $bucket = Get-VBRAmazonS3Bucket -Connection $connect -Name $bucketname
     $folder = New-VBRAmazonS3Folder -Bucket $bucket -Connection $connect -Name "Veeam" 
-    Add-VBRAmazonS3CompatibleRepository -Connection $connect -AmazonS3Folder $folder -Name $bucketname -EnableBackupImmutability -ImmutabilityPeriod 30
+    if ($imm -eq $true) {
+        Add-VBRAmazonS3CompatibleRepository -Connection $connect -AmazonS3Folder $folder -Name $bucketname -EnableBackupImmutability -ImmutabilityPeriod $immdays
+    }
+    else {
+        Add-VBRAmazonS3CompatibleRepository -Connection $connect -AmazonS3Folder $folder -Name $bucketname
+    }
+    
 
     $i++
 } while ($i -le $numrepos)
