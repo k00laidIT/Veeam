@@ -1,6 +1,8 @@
 <#
 .Synopsis
 For Veeam Backup & Replication v12 this script will create the desired number of buckets with a given prefix and then add them into a SOBR
+The aws CLI needs to be installed (choco install awscli -y) 
+    and a named profile configured (aws configure --profile=myprofile) for this to function.
 
 .Notes
 Version: 1.0
@@ -8,8 +10,8 @@ Author: Jim Jones, @k00laidIT; Joe Houghes @jhoughes
 Modified Date: 12/19/2022
 
 .EXAMPLE
-./New-cVBOAWSObjRepos.ps1  #to local function into memory
-New-cVBOAWSObjRepos -NamePrefix 'jjaws-ilandproduct' -VBOSrv 'localhost' -AWSProfile 'PITaws'  -ObjCache 'O:\objCache\' -NumRepos '3' -IMM $true -IMMDays '30'
+.\New-cVBOAWSObjRepos.ps1  #to local function into memory
+New-cVBOAWSObjRepos -NamePrefix 'myorg' -VBOSrv 'localhost' -AWSProfile 'awsprofile'  -ObjCache 'C:\objCache\' -NumRepos '1' -IMM $true -IMMDays '30'
 #>
 
 
@@ -21,22 +23,22 @@ function New-cVBOAWSObjRepos {
     [string] $NamePrefix,
 
     [Parameter(Mandatory = $true)]
-    [string] $VBOSrv,
+    [string] $VBOSrv = 'localhost',
 
     [Parameter(Mandatory = $true)]
     [string] $AWSProfile,
 
     [Parameter(Mandatory = $true)]
-    [string] $ObjCache,
+    [string] $ObjCache = 'C:\objCache\',
 
     [Parameter(Mandatory = $true)]
-    [int] $NumRepos,
+    [int] $NumRepos = "1",
 
     [Parameter(Mandatory = $true)]
-    [boolean] $IMM,
+    [boolean] $IMM = $true,
 
     [Parameter(Mandatory = $true)]
-    [int] $IMMDays
+    [int] $IMMDays = '30'
   )
 
 

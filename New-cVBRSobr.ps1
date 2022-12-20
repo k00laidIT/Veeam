@@ -1,6 +1,8 @@
 <#
 .Synopsis
-For Veeam Backup & Replication v12 this script will create the desired number of buckets with a given prefix and then add them into a SOBR
+For Veeam Backup & Replication v12 this script will create the desired number of buckets with a given prefix and then add them into a SOBR.
+The aws CLI needs to be installed (choco install awscli -y) 
+    and a named profile configured (aws configure --profile=myprofile) for this to function.
 
 .Notes
 Version: 1.0
@@ -8,10 +10,9 @@ Authors: Jim Jones, @k00laidIT; Joe Houghes @jhoughes
 Modified Date: 12/19/2022
 
 .EXAMPLE
-./New-cVBRSOBR.ps1  #to local function into memory
-New-cVBRSOBR -NamePrefix '123-test1' -VBRSrv 'localhost' -SvcPoint 'https://us-central-1a.object.ilandcloud.com' -RegionId 'us-central-1a' -AWSProfile 'ilanduscentral' -NumRepos '5' -IMM $true -IMMDays '30'
+.\New-cVBRSOBR.ps1  #to local function into memory
+New-cVBRSOBR -NamePrefix 'testset1' -VBRSrv 'localhost' -SvcPoint 'https://us-central-1a.object.ilandcloud.com' -RegionId 'us-central-1a' -AWSProfile 'myprofile' -NumRepos '5' -IMM $true -IMMDays '30'
 #>
-
 
 function New-cVBRSOBR {
 
@@ -21,13 +22,13 @@ function New-cVBRSOBR {
       [string] $NamePrefix,
   
       [Parameter(Mandatory = $true)]
-      [string] $VBRSrv,
+      [string] $VBRSrv = "localhost",
   
       [Parameter(Mandatory = $true)]
-      [string] $SvcPoint,
+      [string] $SvcPoint = "https://us-central-1a.ilandcloud.com",
   
       [Parameter(Mandatory = $true)]
-      [string] $RegionId,
+      [string] $RegionId = "us-central-1a",
   
       [Parameter(Mandatory = $true)]
       [string] $AWSProfile,
@@ -36,13 +37,13 @@ function New-cVBRSOBR {
       [int] $NumRepos,
   
       [Parameter(Mandatory = $true)]
-      [boolean] $IMM,
+      [boolean] $IMM = $true,
   
       [Parameter(Mandatory = $true)]
-      [int] $IMMDays
+      [int] $IMMDays = "30"
     )
   
-    begin {    
+    begin {
       Connect-VBRServer -Server $VBRSrv
       $s3cred = Get-VBRAmazonAccount | Where-Object { $_.Description -eq $awsprofile }
       $connect = Connect-VBRAmazonS3CompatibleService -Account $s3cred -CustomRegionId $RegionId -ServicePoint $SvcPoint -Force
