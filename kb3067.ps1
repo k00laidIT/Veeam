@@ -45,8 +45,8 @@ $usage = Get-VBOUsageData -Repository $fromRepo -Organization $vboOrg
 $jobs_for_move=($vboProxyTarget.ThreadsNumber)/2
 
 #Disabling all jobs for selected organization
-$vboJobs = Get-VBOJob -Organization $vboOrg | where-object {$_.Repository -eq $fromRepo.Name}
-$vboJobs | Where-Objecthere-Object{$_.IsEnabled} | Disable-VBOJob > $null
+
+$sourceJob | Disable-VBOJob > $null
 
 #finding all users and migrating them
     $users = Get-VBOEntityData -Type User -Repository $fromRepo | Where-Object {$_.Organization.DisplayName -eq $vboOrg.Name}
