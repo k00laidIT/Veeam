@@ -1,11 +1,11 @@
 ﻿<#
 .Synopsis
-For VB365 will migrate all data from one repository to another, based on the Veeam KB 3067. This version brings some 
+For VB365 will migrate all data for a given job from one repository to another, based on the https://www.veeam.com/kb3067. This version brings some 
 sanity to the selection of proxies and repos while also providing information on what is to be moved (storage and user counts).
 .Notes
-Version: 1.0
+Version: 1.1
 Author: Jim Jones, @k00laidIT
-Modified Date: 5/23/2022
+Modified Date: 1/4/2023
 
 .EXAMPLE
 .\kb3067.ps1
@@ -19,27 +19,17 @@ for($i=0; $i -lt $orgs.count; $i++){write-host $i. $orgs[$i].name}
 $organisationNum = Read-Host  "Enter organisation number"
 $vboOrg = $orgs[$organisationNum]
 
+#Get list of jobs for the organization and have user select the interesting job
 $orgjobs = $vboOrg | get-vbojob
-[System.Collections.ArrayList]$orgrepos = @()
-foreach ($orgjob in $orgjobs) {
-    $repo = $orgjob.repository
-    $output = [PSCustomObject]@{
-        repoName = $repo                         
-    }
-    $orgrepos += $output        
-}
+for($i=0; $i -lt $orgjobs.count; $i++){write-host $i. $orgjobs[$i].name}
+$orgJobNum = Read-Host  "Enter job number"
+$sourceJob = $orgjobs[$orgJobNum]
 
-#Source Repository selection
-$sourcerepo = $orgrepos
-for($i=0; $i -lt $sourcerepo.count; $i++){write-host $i.  $sourcerepo[$i].repoName}
-$sourcerepoNum = Read-Host  "Enter Source repository number"
-$fromRepo = Get-VBORepository -Name $sourcerepo.repoName[$sourcerepoNum]
+#Gather the source repository from the configuration of the selected job
+$repo = $sourceJob.repository
+$fromRepo = Get-VBORepository -Name $repo.repoName
 
-#Backup proxy selection
-$proxies=Get-VBOProxy | Sort-Object Name
-for($i=0; $i -lt $proxies.count; $i++){write-host $i.  $proxies[$i].hostname}
-$proxyNum = Read-Host  "Enter proxy number"
-#$vboProxyTarget = $proxies[$proxyNum]
+#Derive the Proxy from the source repository
 $vboProxyTarget = Get-VBOProxy -Id $fromRepo.ProxyID
 
 #Target Repository selection
@@ -56,7 +46,7 @@ $jobs_for_move=($vboProxyTarget.ThreadsNumber)/2
 
 #Disabling all jobs for selected organization
 $vboJobs = Get-VBOJob -Organization $vboOrg | where-object {$_.Repository -eq $fromRepo.Name}
-$vboJobs | ?{$_.IsEnabled} | Disable-VBOJob > $null
+$vboJobs | Where-Objecthere-Object{$_.IsEnabled} | Disable-VBOJob > $null
 
 #finding all users and migrating them
     $users = Get-VBOEntityData -Type User -Repository $fromRepo | Where-Object {$_.Organization.DisplayName -eq $vboOrg.Name}
@@ -65,7 +55,7 @@ $vboJobs | ?{$_.IsEnabled} | Disable-VBOJob > $null
     {
         Write-Host $user.displayname
         Move-VBOEntityData -From $fromRepo -To $destinationRepo -User $user -Mailbox -ArchiveMailbox -OneDrive -Sites -Confirm:$false -RunAsync
-        while((Get-VBODataManagementSession | ? {$_.Status -eq "Running"}).Count -ge $jobs_for_move){sleep 10}
+        while((Get-VBODataManagementSession | Where-Object {$_.Status -eq "Running"}).Count -ge $jobs_for_move){sleep 10}
     }
 
 #finding all sites and migrating them
@@ -74,7 +64,7 @@ $vboJobs | ?{$_.IsEnabled} | Disable-VBOJob > $null
     foreach ($site in $sites) {
         Write-Host $site.title
         Move-VBOEntityData -From $fromRepo -To $destinationRepo -Site $site -Confirm:$false -RunAsync
-        while((Get-VBODataManagementSession | ? {$_.Status -eq "Running"}).Count -ge $jobs_for_move){sleep 10}
+        while((Get-VBODataManagementSession | Where-Object {$_.Status -eq "Running"}).Count -ge $jobs_for_move){sleep 10}
     }
 
 #finding all groups and migrating them
@@ -83,7 +73,7 @@ $vboJobs | ?{$_.IsEnabled} | Disable-VBOJob > $null
     foreach ($group in $groups) {
         Write-Host $group.displayname
         Move-VBOEntityData -From $fromRepo -To $destinationRepo -Group $group -Mailbox -ArchiveMailbox -OneDrive -Sites -GroupMailbox -GroupSite -Confirm:$false -RunAsync
-        while((Get-VBODataManagementSession | ? {$_.Status -eq "Running"}).Count -ge $jobs_for_move){sleep 10}
+        while((Get-VBODataManagementSession | Where-Object {$_.Status -eq "Running"}).Count -ge $jobs_for_move){sleep 10}
     }
 
 #finding all Teams and migrating them
@@ -92,7 +82,7 @@ $vboJobs | ?{$_.IsEnabled} | Disable-VBOJob > $null
     foreach ($team in $teams) {
         Write-Host $team.displayname
         Move-VBOEntityData -From $fromRepo -To $destinationRepo -Team $team -Confirm:$false -RunAsync
-        while((Get-VBODataManagementSession | ? {$_.Status -eq "Running"}).Count -ge $jobs_for_move){sleep 10}
+        while((Get-VBODataManagementSession | Where-Object {$_.Status -eq "Running"}).Count -ge $jobs_for_move){sleep 10}
     }
 
 
