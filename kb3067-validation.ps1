@@ -19,6 +19,7 @@ for($i=0; $i -lt $orgs.count; $i++){write-host $i. $orgs[$i].name}
 $organisationNum = Read-Host  "Enter organisation number"
 $vboOrg = $orgs[$organisationNum]
 
+#Determine the jobs from the organization and then create a list of repositories from that
 $orgjobs = $vboOrg | get-vbojob
 [System.Collections.ArrayList]$orgrepos = @()
 foreach ($orgjob in $orgjobs) {
@@ -29,23 +30,24 @@ foreach ($orgjob in $orgjobs) {
     $orgrepos += $output        
 }
 
-#Source Repository selection
-$sourcerepo = $orgrepos
-#$sourcerepo=Get-VBORepository | Sort-Object Name
-for($i=0; $i -lt $sourcerepo.count; $i++){write-host $i.  $sourcerepo[$i].repoName}
-$sourcerepoNum = Read-Host  "Enter Source repository number"
-$fromRepo = Get-VBORepository -Name $sourcerepo.repoName[$sourcerepoNum]
+# Selector for chosing the repository to measure
+for($i=0; $i -lt $orgrepos.count; $i++){write-host $i.  $orgrepos[$i].repoName}
+$orgRepoNum = Read-Host  "Enter Source repository number"
+$fromRepo = Get-VBORepository -Name $orgrepos.repoName[$orgRepoNum]
 
+#Create listing of objects by type
 $users = Get-VBOEntityData -Type User -Repository $fromRepo
 $sites =  Get-VBOEntityData -Type Site -Repository $fromRepo 
 $groups = Get-VBOEntityData -Type Group -Repository $fromRepo
 $teams = Get-VBOEntityData -Type Team -Repository $fromRepo 
 
+#Get actual storage size still present in the repository
 $usage = Get-VBOUsageData -Repository $fromRepo -Organization $vboOrg
 
+#Write output of all gathered data
 Write-Host "Summary of sources:"
 Write-Host "Source storage use after the move: $usage"
-Write-Host "Users:   $users"
-Write-Host "Groups:  $groups"
-Write-Host "Sites:   $sites"
-Write-Host "Teams:   $teams"
+Write-Host "Users remaining:   $users.count"
+Write-Host "Groups remaining:  $groups.count"
+Write-Host "Sites remaining:   $sites.count"
+Write-Host "Teams remaining:   $teams.count"

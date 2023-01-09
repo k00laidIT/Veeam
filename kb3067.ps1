@@ -16,7 +16,7 @@ Import-Module Veeam.Archiver.PowerShell
 #Organization selection
 $orgs=Get-vboorganization | Sort-Object Name
 for($i=0; $i -lt $orgs.count; $i++){write-host $i. $orgs[$i].name}
-$organisationNum = Read-Host  "Enter organisation number"
+$organisationNum = Read-Host  "Enter organization number"
 $vboOrg = $orgs[$organisationNum]
 
 #Get list of jobs for the organization and have user select the interesting job
