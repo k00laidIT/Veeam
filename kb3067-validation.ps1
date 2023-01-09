@@ -3,9 +3,9 @@
 To be used after running the iland-kb3067.ps1 to verify that all data has been evacuated from the source repository. As logging is done by
  user it can be hard to ensure all data has moved from the Data Management job session logs.
 .Notes
-Version: 1.0
+Version: 1.1
 Author: Jim Jones, @k00laidIT
-Modified Date: 5/23/2022
+Modified Date: 1/9/2022
 
 .EXAMPLE
 .\kb3067-validation.ps1
