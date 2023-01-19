@@ -82,7 +82,7 @@ function New-cVBRSOBR {
       $sobrname = $NamePrefix + '-sobr'
       Add-VBRScaleOutBackupRepository -Name $sobrname -Extent $objrepo -PolicyType 'DataLocality'
   
-      Disconnect-VBRServer  -Server $VBRSrv
+      Disconnect-VBRServer
     } #end end block
   
   } #end function
