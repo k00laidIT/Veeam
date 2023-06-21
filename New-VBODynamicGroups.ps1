@@ -31,4 +31,3 @@ foreach($grp in $grpData){
         -membershipRule "$($query)"
         -membershipRuleProcessingState 'on'
 }
-
