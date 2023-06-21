@@ -46,8 +46,10 @@ $usage = Get-VBOUsageData -Repository $fromRepo -Organization $vboOrg
 
 #Write output of all gathered data
 Write-Host "Summary of sources:"
-Write-Host "Source storage use after the move: $usage"
-Write-Host "Users remaining:   $users.count"
-Write-Host "Groups remaining:  $groups.count"
-Write-Host "Sites remaining:   $sites.count"
-Write-Host "Teams remaining:   $teams.count"
+Write-Host "Source Block storage use after the move: " $usage.UsedSpace
+Write-Host "Source Cache storage use after the move: " $usage.LocalCacheUsedSpace
+Write-Host "Source object storage use after the move: " $usage.ObjectStorageUsedSpace
+Write-Host "Users remaining: "  $users.count
+Write-Host "Groups remaining: " $groups.count
+Write-Host "Sites remaining: "  $sites.count
+Write-Host "Teams remaining: "  $teams.count

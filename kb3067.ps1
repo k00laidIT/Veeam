@@ -27,7 +27,7 @@ $sourceJob = $orgjobs[$orgJobNum]
 
 #Gather the source repository from the configuration of the selected job
 $repo = $sourceJob.repository
-$fromRepo = Get-VBORepository -Name $repo.repoName
+$fromRepo = Get-VBORepository -Name $repo.Name
 
 #Derive the Proxy from the source repository
 $vboProxyTarget = Get-VBOProxy -Id $fromRepo.ProxyID
