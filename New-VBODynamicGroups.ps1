@@ -20,7 +20,7 @@ foreach($grp in $grpData){
     $groupName = $grp.$groupName
     $regEx = $grp.regex
     $usageLocation = $grp.$usageLocation
-    $query = (user.userPrincipalName -match "$regEx") and (user.usageLocation -eq "$usageLocation")
+    $query = "(user.userPrincipalName -match '$regEx') and (user.usageLocation -eq '$usageLocation')"
 
     New-AzureADMSGroup -DisplayName $groupName `
         -MailNickName $groupName `
