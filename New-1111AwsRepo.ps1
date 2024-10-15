@@ -20,6 +20,9 @@ Parameters:
 New-1111AwsRepo -Bucket 'bucket1' -accessKey "myAWSaccessKey" -RegionId 'us-west-2' -IMM -IMMDays '30'
 #>
 
+#Requires -Modules AWS.Tools.Commong, AWS.Tools.S3
+
+
 function New-1111AwsRepo {
 
     [CmdletBinding(DefaultParametersetName = 'None')] 
@@ -42,8 +45,14 @@ function New-1111AwsRepo {
       [Parameter(ParameterSetName = 'IMM', Mandatory = $false)]
       [int] $IMMDays = "30"
     )
+
+    import-module AWS.Tools.Common, AWS.Tools.S3
+
+    $secretKey = read-host -Prompt "Please Supply the Provided Secret Key" -AsSecureString
+    $inSecureKey = ConvertFrom-SecureString -SecureString $secretKey -AsPlainText
   
     begin {
+        #Check Immutability and make Veeam AWS Connection      
         if (-Not $IMM -and $IMMDays -lt 1) {
             Write-Host "Please disable Immutability or supply a period greater than 0. The recommended is 30."
             break
@@ -53,8 +62,7 @@ function New-1111AwsRepo {
             $s3cred = get-vbramazonaccount -AccessKey $accessKey -ErrorAction Stop
           }
           
-          catch {
-            $secretKey = read-host -Prompt "Please Supply the Provided Secret Key" -AsSecureString
+          catch {            
             $s3cred = Add-VBRAmazonAccount -AccessKey $accessKey -SecretKey $secretKey -Description "11:11 Provided AWS Credential"
           }
 
@@ -62,7 +70,32 @@ function New-1111AwsRepo {
             $awsConn = Connect-VBRAmazonS3Service -Account $s3cred -RegionType "Global" -ServiceType CapacityTier -ConnectionType Direct
             $region = Get-VBRAmazonS3Region -Connection $awsConn -Region $RegionId
           }
-   
+        
+        #Check if bucket exists, if it appropriately has object lock enabled and if not create it. 
+        if ($IMM) {
+            $aBucket = Get-S3Bucket -AccessKey $accessKey -SecretKey $unsecureKey -Region -BucketName $bucket
+            if ($aBucket.BucketName = null) {
+              New-S3Bucket -AccessKey $accessKey -SecretKey $unsecureKey -Region $region -ObjectLockEnabledForBucket $true -BucketName $bucket
+            }else {
+              $oblockcheck = Get-S3ObjectLockConfiguration -AccessKey $accessKey -SecretKey $unsecureKey -Region -BucketName $bucket
+              if (-Not $oblockcheck.ObjectLockEnabled) {
+                Write-Host "The supplied bucket does not have Object-Lock enabled. Please supply a different bucket or disable Immutability"
+                break
+              }
+            }    
+        }else {
+            $aBucket = Get-S3Bucket -AccessKey $accessKey -SecretKey $unsecureKey -Region -BucketName $bucket
+            if ($aBucket.BucketName = null) {
+              New-S3Bucket -AccessKey $accessKey -SecretKey $unsecureKey -Region $region -ObjectLockEnabledForBucket $false -BucketName $bucket
+            }else {
+              $oblockcheck = Get-S3ObjectLockConfiguration -AccessKey $accessKey -SecretKey $unsecureKey -Region -BucketName $bucket
+              if ($oblockcheck.ObjectLockEnabled) {
+                Write-Host "The supplied bucket has Object-Lock enabled. Please supply a different bucket or enable Immutability"
+                break
+              }
+            }    
+        }
+          
       } #end begin block
 
       process {
