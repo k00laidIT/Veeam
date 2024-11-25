@@ -16,11 +16,11 @@ Parameters:
     -IMMDays: (optional) Defaults to 30 days which should be the minimum. Maximum is 90.
 
 .EXAMPLE
-.\New-1111AwsRepo.ps1  #to local function into memory
+.\New-1111AwsRepo.ps1  #to load function into memory
 New-1111AwsRepo -Bucket 'bucket1' -accessKey "myAWSaccessKey" -RegionId 'us-west-2' -IMM -IMMDays '30'
 #>
 
-#Requires -Modules AWS.Tools.Commong, AWS.Tools.S3
+#Requires -Modules AWS.Tools.Common, AWS.Tools.S3
 
 
 function New-1111AwsRepo {
