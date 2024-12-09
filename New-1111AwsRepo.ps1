@@ -14,10 +14,13 @@ Parameters:
     -accessKey: (mandatory) first part of key pair provided to you by 11:11 Service Delivery
     -IMM: (optional) Mandatory if you have enabled object lock on the bucket. Recommended.
     -IMMDays: (optional) Defaults to 30 days which should be the minimum. Maximum is 90.
+		-numRepos: (optional) Defaults to 1. If number is greater than 1 it will make that many repositories
+		-makeSobr: (optional) If supplied will create a Veeam Scale Out Backup Repository and put any repositories
+			created into the performance tier
 
 .EXAMPLE
 .\New-1111AwsRepo.ps1  #to load function into memory
-New-1111AwsRepo -Bucket 'bucket1' -accessKey "myAWSaccessKey" -RegionId 'us-west-2' -IMM -IMMDays '30'
+New-1111AwsRepo -Bucket 'bucket1' -accessKey "myAWSaccessKey" -RegionId 'us-west-2' -IMM -IMMDays '30' -numRepos 2
 #>
 
 #Requires -Modules AWS.Tools.Common, AWS.Tools.S3
@@ -30,7 +33,7 @@ function New-1111AwsRepo {
       [Parameter(Mandatory = $true)]
       [string] $bucket,
   
-      [Parameter(Mandatory = $false)]
+      [Parameter(Mandatory = $true)]
       [string] $VBRSrv = "localhost",
   
       [Parameter(Mandatory = $true)]
@@ -38,6 +41,12 @@ function New-1111AwsRepo {
   
       [Parameter(Mandatory = $true)]
       [string] $accessKey,
+
+      [Parameter(Mandatory = $false)]
+      [string] $numRepos = 1,
+
+      [Parameter(Mandatory = $false)]
+      [string] $makeSobr,
   
       [Parameter(ParameterSetName = 'IMM', Mandatory = $false)]
       [Switch] $IMM,
