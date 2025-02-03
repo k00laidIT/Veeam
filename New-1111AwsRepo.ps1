@@ -20,7 +20,7 @@ Parameters:
 
 .EXAMPLE
 .\New-1111AwsRepo.ps1  #to load function into memory
-New-1111AwsRepo -Bucket 'bucket1' -accessKey "myAWSaccessKey" -RegionId 'us-west-2' -IMM -IMMDays '30' -numRepos 2
+New-1111AwsRepo -Bucket 'bucket1' -accessKey "myAWSaccessKey" -RegionId 'us-west-2' -IMM -IMMDays '30'
 #>
 
 #Requires -Modules AWS.Tools.Common, AWS.Tools.S3
@@ -33,7 +33,7 @@ function New-1111AwsRepo {
       [Parameter(Mandatory = $true)]
       [string] $bucket,
   
-      [Parameter(Mandatory = $true)]
+      [Parameter(Mandatory = $false)]
       [string] $VBRSrv = "localhost",
   
       [Parameter(Mandatory = $true)]
@@ -41,12 +41,6 @@ function New-1111AwsRepo {
   
       [Parameter(Mandatory = $true)]
       [string] $accessKey,
-
-      [Parameter(Mandatory = $false)]
-      [string] $numRepos = 1,
-
-      [Parameter(Mandatory = $false)]
-      [string] $makeSobr,
   
       [Parameter(ParameterSetName = 'IMM', Mandatory = $false)]
       [Switch] $IMM,
@@ -55,66 +49,90 @@ function New-1111AwsRepo {
       [int] $IMMDays = "30"
     )
 
-    import-module AWS.Tools.Common, AWS.Tools.S3
 
-    $secretKey = read-host -Prompt "Please Supply the Provided Secret Key" -AsSecureString
-    $inSecureKey = ConvertFrom-SecureString -SecureString $secretKey -AsPlainText
-  
     begin {
-        #Check Immutability and make Veeam AWS Connection      
-        if (-Not $IMM -and $IMMDays -lt 1) {
-            Write-Host "Please disable Immutability or supply a period greater than 0. The recommended is 30."
+      import-module AWS.Tools.Common, AWS.Tools.S3
+  
+      $secretKey = read-host -Prompt "Please Supply the Provided Secret Key" -AsSecureString
+      $inSecureKey = ConvertFrom-SecureString -SecureString $secretKey -AsPlainText
+
+      Connect-VBRServer -Server $VBRSrv  
+      Set-AWSCredential -AccessKey $accessKey -SecretKey $inSecureKey
+
+        #Check Immutability
+        if ($IMM -and $IMMDays -lt 1) {
+            Write-Host "Immutabilty is enabled, please supply a period greater than 0. The recommended is 30."
             break
         }
-        Connect-VBRServer -Server $VBRSrv
-        try {
-            $s3cred = get-vbramazonaccount -AccessKey $accessKey -ErrorAction Stop
-          }
-          
-          catch {            
-            $s3cred = Add-VBRAmazonAccount -AccessKey $accessKey -SecretKey $secretKey -Description "11:11 Provided AWS Credential"
-          }
 
-          finally {
-            $awsConn = Connect-VBRAmazonS3Service -Account $s3cred -RegionType "Global" -ServiceType CapacityTier -ConnectionType Direct
-            $region = Get-VBRAmazonS3Region -Connection $awsConn -Region $RegionId
-          }
-        
+        #Check VBR Version. For 12.3 and later we'll use the new 11:11 Object Repository Type. For earlier version of v12 we'll use AWS.
+        $vbrBuild = Get-VBRBackupServerInfo | Select-Object Build
+        if ($vbrBuild.Build -ge "12.3.0.310") {
+          $vbrRepoType = "1111"
+        } else {
+          $vbrRepoType = "AWS"
+        }
+      
         #Check if bucket exists, if it appropriately has object lock enabled and if not create it. 
         if ($IMM) {
-            $aBucket = Get-S3Bucket -AccessKey $accessKey -SecretKey $unsecureKey -Region -BucketName $bucket
+            $aBucket = Get-S3Bucket -Region -BucketName $bucket
             if ($aBucket.BucketName = null) {
-              New-S3Bucket -AccessKey $accessKey -SecretKey $unsecureKey -Region $region -ObjectLockEnabledForBucket $true -BucketName $bucket
+              New-S3Bucket -Region $region -ObjectLockEnabledForBucket $true -BucketName $bucket
             }else {
-              $oblockcheck = Get-S3ObjectLockConfiguration -AccessKey $accessKey -SecretKey $unsecureKey -Region -BucketName $bucket
+              $oblockcheck = Get-S3ObjectLockConfiguration -Region -BucketName $bucket
               if (-Not $oblockcheck.ObjectLockEnabled) {
                 Write-Host "The supplied bucket does not have Object-Lock enabled. Please supply a different bucket or disable Immutability"
                 break
               }
             }    
         }else {
-            $aBucket = Get-S3Bucket -AccessKey $accessKey -SecretKey $unsecureKey -Region -BucketName $bucket
+            $aBucket = Get-S3Bucket -Region -BucketName $bucket
             if ($aBucket.BucketName = null) {
-              New-S3Bucket -AccessKey $accessKey -SecretKey $unsecureKey -Region $region -ObjectLockEnabledForBucket $false -BucketName $bucket
+              New-S3Bucket  -Region $region -ObjectLockEnabledForBucket $false -BucketName $bucket
             }else {
-              $oblockcheck = Get-S3ObjectLockConfiguration -AccessKey $accessKey -SecretKey $unsecureKey -Region -BucketName $bucket
+              $oblockcheck = Get-S3ObjectLockConfiguration -Region -BucketName $bucket
               if ($oblockcheck.ObjectLockEnabled) {
                 Write-Host "The supplied bucket has Object-Lock enabled. Please supply a different bucket or enable Immutability"
                 break
               }
             }    
         }
+
+        # Add AWS credentials to Veeam and make connection
+        try {
+          $s3cred = get-vbramazonaccount -AccessKey $accessKey -ErrorAction Stop
+        }
+        
+        catch {            
+          $s3cred = Add-VBRAmazonAccount -AccessKey $accessKey -SecretKey $secretKey -Description "11:11 Provided AWS Credential"
+        }
+
+        finally {
+          $awsConn = Connect-VBRAmazonS3Service -Account $s3cred -RegionType "Global" -ServiceType CapacityTier -ConnectionType Direct
+          $region = Get-VBRAmazonS3Region -Connection $awsConn -Region $RegionId
+        }
           
       } #end begin block
 
       process {
+              # Add bucket  as Veeam Repository
+
         $vBucket = Get-VBRAmazonS3Bucket -Connection $awsConn -Name $bucket -Region $region
         $folder = New-VBRAmazonS3Folder -Connection $awsConn -Bucket $vBucket -Name "Veeam"
-        if ($IMM) {
-                Add-VBRAmazonS3Repository -Connection $awsConn -AmazonS3Folder $folder -Name $bucket -EnableIAStorageClass -EnableBackupImmutability -ImmutabilityPeriod $immdays            
+
+        if ($vbrRepoType -eq "AWS") {
+          if ($IMM) {
+            Add-VBRAmazonS3Repository -Connection $awsConn -AmazonS3Folder $folder -Name $bucket -EnableIAStorageClass -EnableBackupImmutability -ImmutabilityPeriod $immdays            
           } else {
             Add-VBRAmazonS3Repository -Connection $awsConn -AmazonS3Folder $folder  -EnableIAStorageClass -Name $bucket
           }
+        } elseif ($vbrRepoType -eq "1111") {
+          if ($IMM) {
+            Add-VBR1111SystemsS3Repository -Connection $awsConn -AmazonS3Folder $folder -Name $bucket -EnableIAStorageClass -EnableBackupImmutability -ImmutabilityPeriod $immdays            
+          } else {
+            Add-VBR1111SystemsS3Repository -Connection $awsConn -AmazonS3Folder $folder  -EnableIAStorageClass -Name $bucket
+          }
+        }
       } #end process block
 
     } #end function
