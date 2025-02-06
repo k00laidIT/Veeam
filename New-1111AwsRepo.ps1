@@ -4,9 +4,9 @@ For Veeam Backup & Replication v12 this script will create a AWS credential set 
 then create an object storage repository for a provided bucket
 
 .Notes
-Version: 1.0
+Version: 1.3
 Authors: Jim Jones, @1111systems
-Modified Date: 05/30/2024
+Modified Date: 02/06/2025
 Parameters:
     -bucket: (mandatory) bucket name to be used
     -VBRSrv: (optional) defaults to localhost, supply if using remotely
