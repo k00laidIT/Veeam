@@ -50,7 +50,7 @@ param (
 begin {
   import-module AWS.Tools.Common, AWS.Tools.S3, Veeam.Backup.Powershell
 
-  #Logic for supporting 5.x Powershell which can't convert from secure to insecure, ewwwww
+  #Logic for supporting 5.x Powershell which can't convert from secure to insecure just for AWS use, ewwwww
   if ($PSVersionTable.PSVersion -ge "7.0.0" ) {
     $secretKey = read-host -Prompt "Please Supply the Provided Secret Key" -AsSecureString
     $inSecureKey = ConvertFrom-SecureString -SecureString $secretKey -AsPlainText
