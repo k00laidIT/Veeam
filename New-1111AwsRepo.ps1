@@ -48,16 +48,18 @@ param (
 
 
 begin {
-  import-module AWS.Tools.Common, AWS.Tools.S3, Veeam.Backup.Powershell
-
   #Logic for supporting 5.x Powershell which can't convert from secure to insecure just for AWS use, ewwwww
   if ($PSVersionTable.PSVersion -ge "7.0.0" ) {
-    $secretKey = read-host -Prompt "Please Supply the Provided Secret Key" -AsSecureString
-    $inSecureKey = ConvertFrom-SecureString -SecureString $secretKey -AsPlainText
+    Write-Host "Veeam does not currently support Powershell Core. Please launch via powershell.exe"
+    break
+    # $secretKey = read-host -Prompt "Please Supply the Provided Secret Key" -AsSecureString
+    # $inSecureKey = ConvertFrom-SecureString -SecureString $secretKey -AsPlainText
   } else {
     $inSecureKey = read-host -Prompt "Please Supply the Provided Secret Key"
     $secretKey = ConvertTo-SecureString -string $insecureString -AsPlainText -Force
   }
+  
+  import-module AWS.Tools.Common, AWS.Tools.S3, Veeam.Backup.Powershell 
 
   Connect-VBRServer -Server $VBRSrv  
   Set-AWSCredential -AccessKey $accessKey -SecretKey $inSecureKey
