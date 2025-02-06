@@ -14,9 +14,6 @@ Parameters:
     -accessKey: (mandatory) first part of key pair provided to you by 11:11 Service Delivery
     -IMM: (optional) Mandatory if you have enabled object lock on the bucket. Recommended.
     -IMMDays: (optional) Defaults to 30 days which should be the minimum. Maximum is 90.
-		-numRepos: (optional) Defaults to 1. If number is greater than 1 it will make that many repositories
-		-makeSobr: (optional) If supplied will create a Veeam Scale Out Backup Repository and put any repositories
-			created into the performance tier
 
 .EXAMPLE
 .\New-1111AwsRepo.ps1  #to load function into memory
@@ -61,7 +58,23 @@ begin {
   import-module AWS.Tools.Common, AWS.Tools.S3, Veeam.Backup.Powershell 
 
   Connect-VBRServer -Server $VBRSrv  
+
+  #Let's use those AWS Creds
   Set-AWSCredential -AccessKey $accessKey -SecretKey $inSecureKey
+
+      # Add AWS credentials to Veeam and make connection
+      try {
+        $s3cred = get-vbramazonaccount -AccessKey $accessKey -ErrorAction Stop
+      }
+      
+      catch {       
+        $s3cred = Add-VBRAmazonAccount -AccessKey $accessKey -SecretKey $secretKey -Description "11:11 Provided AWS Credential"
+      }
+  
+      finally {
+        $awsConn = Connect-VBRAmazonS3Service -Account $s3cred -RegionType "Global" -ServiceType CapacityTier -ConnectionType Direct
+        $region = Get-VBRAmazonS3Region -Connection $awsConn -Region $RegionId
+      }
 
     #Check Immutability
     if ($IMM -and $IMMDays -lt 1) {
@@ -79,7 +92,7 @@ begin {
   
     #Check if bucket exists, if it appropriately has object lock enabled and if not create it. 
     if ($IMM) {
-        $aBucket = Get-S3Bucket -Region -BucketName $bucket
+        $aBucket = Get-S3Bucket -Region $RegionId -BucketName $bucket
         if ($aBucket.BucketName = null) {
           New-S3Bucket -Region $region -ObjectLockEnabledForBucket $true -BucketName $bucket
         }else {
@@ -102,20 +115,7 @@ begin {
         }    
     }
 
-    # Add AWS credentials to Veeam and make connection
-    try {
-      $s3cred = get-vbramazonaccount -AccessKey $accessKey -ErrorAction Stop
-    }
-    
-    catch {   
-     
-      $s3cred = Add-VBRAmazonAccount -AccessKey $accessKey -SecretKey $secretKey -Description "11:11 Provided AWS Credential"
-    }
 
-    finally {
-      $awsConn = Connect-VBRAmazonS3Service -Account $s3cred -RegionType "Global" -ServiceType CapacityTier -ConnectionType Direct
-      $region = Get-VBRAmazonS3Region -Connection $awsConn -Region $RegionId
-    }
       
   } #end begin block
 
