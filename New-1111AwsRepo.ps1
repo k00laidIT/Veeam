@@ -54,6 +54,9 @@ begin {
     $secretKey = ConvertTo-SecureString -string $insecureString -AsPlainText -Force
   }
 
+  #ensure bucket is in all lowercase as S3 requires
+  $bucket = $bucket.ToLower()
+  
   import-module AWS.Tools.Common, AWS.Tools.S3, Veeam.Backup.Powershell 
 
   Connect-VBRServer -Server $VBRSrv  
