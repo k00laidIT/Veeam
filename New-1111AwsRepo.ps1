@@ -70,11 +70,6 @@ begin {
       catch {       
         $s3cred = Add-VBRAmazonAccount -AccessKey $accessKey -SecretKey $secretKey -Description "11:11 Provided AWS Credential"
       }
-  
-      finally {
-        $awsConn = Connect-VBRAmazonS3Service -Account $s3cred -RegionType "Global" -ServiceType CapacityTier -ConnectionType Direct
-        $region = Get-VBRAmazonS3Region -Connection $awsConn -Region $RegionId
-      }
 
     #Check Immutability
     if ($IMM -and $IMMDays -lt 1) {
@@ -93,8 +88,8 @@ begin {
     #Check if bucket exists, if it appropriately has object lock enabled and if not create it. 
     if ($IMM) {
         $aBucket = Get-S3Bucket -Region $RegionId -BucketName $bucket
-        if ($aBucket.BucketName = null) {
-          New-S3Bucket -Region $region -ObjectLockEnabledForBucket $true -BucketName $bucket
+        if (!$aBucket.BucketName) {
+          New-S3Bucket -Region $RegionId -ObjectLockEnabledForBucket $true -BucketName $bucket
         }else {
           $oblockcheck = Get-S3ObjectLockConfiguration -Region -BucketName $bucket
           if (-Not $oblockcheck.ObjectLockEnabled) {
@@ -104,23 +99,24 @@ begin {
         }    
     }else {
         $aBucket = Get-S3Bucket -Region -BucketName $bucket
-        if ($aBucket.BucketName = null) {
-          New-S3Bucket  -Region $region -ObjectLockEnabledForBucket $false -BucketName $bucket
+        if (!$aBucket.BucketName) {
+          New-S3Bucket  -Region $RegionId -ObjectLockEnabledForBucket $false -BucketName $bucket
         }else {
-          $oblockcheck = Get-S3ObjectLockConfiguration -Region -BucketName $bucket
+          $oblockcheck = Get-S3ObjectLockConfiguration -Region $RegionId -BucketName $bucket
           if ($oblockcheck.ObjectLockEnabled) {
             Write-Host "The supplied bucket has Object-Lock enabled. Please supply a different bucket or enable Immutability"
             break
           }
         }    
-    }
-
-
-      
+    }      
   } #end begin block
 
   process {
-          # Add bucket  as Veeam Repository
+    #create Veeam Connection to AWS
+    $awsConn = Connect-VBRAmazonS3Service -Account $s3cred -RegionType "Global" -ServiceType "CapacityTier" -ConnectionType "Direct"
+    $region = Get-VBRAmazonS3Region -Connection $awsConn -Region $RegionId
+
+    # Add bucket  as Veeam Repository
 
     $vBucket = Get-VBRAmazonS3Bucket -Connection $awsConn -Name $bucket -Region $region
     $folder = New-VBRAmazonS3Folder -Connection $awsConn -Bucket $vBucket -Name "Veeam"
