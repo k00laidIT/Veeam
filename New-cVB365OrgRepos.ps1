@@ -96,3 +96,4 @@ function New-cVBOAWSObjRepos {
 
 
 
+Add-VBOAmazonS3Repository -Name $bucket -EnableStandardIAStorageClass -EnableImmutability -ImmutabilityPeriodDays $immDays -RetentionPeriod Year3
