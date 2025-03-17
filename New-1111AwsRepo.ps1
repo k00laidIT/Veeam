@@ -14,8 +14,8 @@ Parameters:
     -accessKey: (mandatory) first part of key pair provided to you by 11:11 Service Delivery
     -IMM: (optional) Mandatory if you have enabled object lock on the bucket. Recommended.
     -IMMDays: (optional) Defaults to 30 days which should be the minimum. Maximum is 90.
-		-Encrypt: (optional) Enables global VBR registry key to require encryption. Use 
-				with care, especially in brownfield deployments
+    -Encrypt: (optional) Enables global VBR registry key to require encryption. Use 
+	with care, especially in brownfield deployments
 
 .EXAMPLE
 .\New-1111AwsRepo.ps1 -Bucket 'bucket1' -accessKey "myAWSaccessKey" -RegionId 'us-west-2' -IMM -IMMDays '30'
