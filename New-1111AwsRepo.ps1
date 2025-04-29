@@ -14,8 +14,6 @@ Parameters:
     -accessKey: (mandatory) first part of key pair provided to you by 11:11 Service Delivery
     -IMM: (optional) Mandatory if you have enabled object lock on the bucket. Recommended.
     -IMMDays: (optional) Defaults to 30 days which should be the minimum. Maximum is 90.
-    -Encrypt: (optional) Enables global VBR registry key to require encryption. Use 
-	with care, especially in brownfield deployments
 
 .EXAMPLE
 .\New-1111AwsRepo.ps1 -Bucket 'bucket1' -accessKey "myAWSaccessKey" -RegionId 'us-west-2' -IMM -IMMDays '30'
@@ -37,9 +35,6 @@ param (
   [Parameter(Mandatory = $true)]
   [string] $accessKey,
 
-  [Parameter(ParameterSetName = 'Encrypt', Mandatory = $false)]
-  [Switch] $Encrypt,
-
   [Parameter(ParameterSetName = 'IMM', Mandatory = $false)]
   [Switch] $IMM,
 
@@ -51,12 +46,20 @@ param (
 begin {
   #Logic for supporting 5.x Powershell which can't convert from secure to insecure just for AWS use, ewwwww
   if ($PSVersionTable.PSVersion -ge "7.0.0" ) {
-    Write-Host "Veeam does not currently support Powershell Core. Please launch via powershell.exe"
-    # $secretKey = read-host -Prompt "Please Supply the Provided Secret Key" -AsSecureString
-    # $inSecureKey = ConvertFrom-SecureString -SecureString $secretKey -AsPlainText
+    # Write-Host "Veeam does not currently support Powershell Core. Please launch via powershell.exe"
+    $secretKey = read-host -Prompt "Please Supply the Provided Secret Key" -AsSecureString
+    $inSecureKey = ConvertFrom-SecureString -SecureString $secretKey -AsPlainText
   } else {
     $inSecureKey = read-host -Prompt "Please Supply the Provided Secret Key"
-    $secretKey = ConvertTo-SecureString -string $insecureString -AsPlainText -Force
+    $secretKey = ConvertTo-SecureString -string $insecureKey -AsPlainText -Force
+  }
+
+  #
+  if ($VBRSrv -ne "localhost"){
+    $creds = Get-Credential
+    Connect-VBRServer -Server $VBRSrv -Credential $creds
+  } else {
+    Connect-VBRServer -Server $VBRSrv
   }
 
   #ensure bucket is in all lowercase as S3 requires
@@ -64,7 +67,7 @@ begin {
   
   import-module AWS.Tools.Common, AWS.Tools.S3, Veeam.Backup.Powershell 
 
-  Connect-VBRServer -Server $VBRSrv  
+  
 
   #Let's use those AWS Creds
   Set-AWSCredential -AccessKey $accessKey -SecretKey $inSecureKey
@@ -98,7 +101,7 @@ begin {
         if (!$aBucket.BucketName) {
           New-S3Bucket -Region $RegionId -ObjectLockEnabledForBucket $true -BucketName $bucket
         }else {
-          $oblockcheck = Get-S3ObjectLockConfiguration -Region -BucketName $bucket
+          $oblockcheck = Get-S3ObjectLockConfiguration -Region $RegionId -BucketName $bucket
           if (-Not $oblockcheck.ObjectLockEnabled) {
             Write-Host "The supplied bucket does not have Object-Lock enabled. Please supply a different bucket or disable Immutability"
             break
