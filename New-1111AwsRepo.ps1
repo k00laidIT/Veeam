@@ -65,10 +65,6 @@ begin {
   #ensure bucket is in all lowercase as S3 requires
   $bucket = $bucket.ToLower()
   
-  import-module AWS.Tools.Common, AWS.Tools.S3, Veeam.Backup.Powershell 
-
-  
-
   #Let's use those AWS Creds
   Set-AWSCredential -AccessKey $accessKey -SecretKey $inSecureKey
 
